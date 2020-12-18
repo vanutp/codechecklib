@@ -23,7 +23,7 @@ AVAILABLE_BINARIES = {
     'cpp': ['env', 'bash', 'sh', 'g++', 'ld', 'as'],
     'c': ['env', 'bash', 'sh', 'gcc', 'ld', 'as'],
     'py': ['env', 'bash', 'sh', 'python', 'python3', 'pylint'],
-    'py_nl': ['env', 'bash', 'sh', 'python', 'python3', 'pylint'],
+    'py_nl': ['env', 'bash', 'sh', 'python', 'python3', 'echo'],
 }
 
 MY_USER = getpass.getuser()
