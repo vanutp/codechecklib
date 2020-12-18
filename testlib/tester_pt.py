@@ -36,7 +36,9 @@ class TesterPtCompatible(Tester):
         r = os.system(f'sudo cgcreate -a {MY_USER} -t {MY_USER}:ts_user -g memory:{cgroup}')
         r0 = os.system(f'sudo chmod 660 /sys/fs/cgroup/memory/{cgroup}/tasks')
         r1 = os.system(f'sudo su -c "echo {memory} > /sys/fs/cgroup/memory/{cgroup}/memory.limit_in_bytes"')
-        r2 = os.system(f'sudo su -c "echo {memory} > /sys/fs/cgroup/memory/{cgroup}/memory.memsw.limit_in_bytes"')
+        r2 = 0
+        if os.path.isfile(f'/sys/fs/cgroup/memory/{cgroup}/memory.memsw.limit_in_bytes'):
+            r2 = os.system(f'sudo su -c "echo {memory} > /sys/fs/cgroup/memory/{cgroup}/memory.memsw.limit_in_bytes"')
         if r or r0 or r1 or r2:
             raise CgroupSetupException()
         for test_idx in range(len(tests)):
