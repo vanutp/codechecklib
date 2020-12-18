@@ -3,8 +3,8 @@ import random
 import string
 from typing import List, Tuple
 
-from testlib import Tester
-from testlib.const import ExecStatus, EXEC_STATUS_TO_PT_STATUS, MY_USER, CgroupSetupException
+from . import Tester
+from .const import ExecStatus, EXEC_STATUS_TO_PT_STATUS, MY_USER, CgroupSetupException
 
 
 class TesterPtCompatible(Tester):
