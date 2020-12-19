@@ -52,7 +52,7 @@ class Tester:
 
         q = Queue()
         cmd = get_sandbox_command(has_internet, blacklist_dirs, EXEC_COMMANDS[language](compiled_path),
-                                  AVAILABLE_BINARIES[language], True, timeout, cgroup, user)
+                                  AVAILABLE_BINARIES[language], True, cgroup, user)
         process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         thread = KillableThread(target=self._background_execute,
                                 args=(q, process, stdin if not input_file else ''))
