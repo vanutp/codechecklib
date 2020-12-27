@@ -40,7 +40,7 @@ class Tester:
         queue.put(process.communicate(input.encode()))
 
     def _execute_one(self, compiled_path: str, timeout: int, has_internet: bool, blacklist_dirs: List[str],
-                     language: str, input_file: str, output_file: str, stdin: str, cgroups: List[str]) -> ExecResult:
+                     language: str, input_file: str, output_file: str, stdin: str, cgroup: str) -> ExecResult:
         create_user = input_file or output_file
         user = ''
         if create_user:
@@ -52,7 +52,7 @@ class Tester:
 
         q = Queue()
         cmd = get_sandbox_command(has_internet, blacklist_dirs, EXEC_COMMANDS[language](compiled_path),
-                                  AVAILABLE_BINARIES[language], True, cgroups, user)
+                                  AVAILABLE_BINARIES[language], True, cgroup, user)
         process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         thread = KillableThread(target=self._background_execute,
                                 args=(q, process, stdin if not input_file else ''))
@@ -106,24 +106,18 @@ class Tester:
     def run(self, compiled_path: str, language: str, stdin: str, blacklist_dirs: List[str] = [],
             timeout: int = 2000, memory: int = 268435456, has_internet: bool = False,
             input_file: str = '', output_file: str = '') -> ExecResult:
-        cgroup_name = 'ts_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-        setup_commands = [
-            f'sudo cgcreate -a {MY_USER} -t {MY_USER}:ts_user -g memory:{cgroup_name}',
-            f'sudo cgcreate -a {MY_USER} -t {MY_USER}:ts_user -g pids:{cgroup_name}',
-            f'sudo chmod 660 /sys/fs/cgroup/memory/{cgroup_name}/tasks',
-            f'sudo chmod 660 /sys/fs/cgroup/pids/{cgroup_name}/tasks',
-            f'sudo su -c "echo {memory} > /sys/fs/cgroup/memory/{cgroup_name}/memory.limit_in_bytes"',
-            f'sudo su -c "echo {memory} > /sys/fs/cgroup/memory/{cgroup_name}/memory.memsw.limit_in_bytes"'
-            if os.path.isfile(f'/sys/fs/cgroup/memory/{cgroup_name}/memory.memsw.limit_in_bytes') else '',
-            f'sudo su -c "echo 8 > /sys/fs/cgroup/pids/{cgroup_name}/pids.max"'
-        ]
-        for cmd in setup_commands:
-            if code := os.system(cmd):
-                raise CgroupSetupException(f'Command "{cmd}" failed with exit code {code}')
+        cgroup = 'ts_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        r = os.system(f'sudo cgcreate -a {MY_USER} -t {MY_USER}:ts_user -g memory:{cgroup}')
+        r0 = os.system(f'sudo chmod 660 /sys/fs/cgroup/memory/{cgroup}/tasks')
+        r1 = os.system(f'sudo su -c "echo {memory} > /sys/fs/cgroup/memory/{cgroup}/memory.limit_in_bytes"')
+        r2 = 0
+        if os.path.isfile(f'/sys/fs/cgroup/memory/{cgroup}/memory.memsw.limit_in_bytes'):
+            r2 = os.system(f'sudo su -c "echo {memory} > /sys/fs/cgroup/memory/{cgroup}/memory.memsw.limit_in_bytes"')
+        if r or r0 or r1 or r2:
+            raise CgroupSetupException()
         res = self._execute_one(compiled_path, timeout, has_internet, blacklist_dirs, language, input_file,
-                                output_file, stdin, [f'memory/{cgroup_name}', f'pids/{cgroup_name}'])
-        os.system(f'sudo cgdelete memory:{cgroup_name}')
-        os.system(f'sudo cgdelete pids:{cgroup_name}')
+                                output_file, stdin, cgroup)
+        os.system(f'sudo cgdelete memory:{cgroup}')
         return res
 
 
