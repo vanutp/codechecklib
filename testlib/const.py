@@ -39,7 +39,7 @@ class CgroupSetupException(TestingException):
     pass
 
 
-class ExecStatus(Enum):
+class ExecStatus(str, Enum):
     TL = 'TL'
     ML = 'ML'
     RE = 'RE'
