@@ -75,7 +75,7 @@ class Tester:
     async def _execute_one(self, compiled_path: str, timeout: int, memory: int,
                            has_internet: bool, blacklist_dirs: List[str], language: str,
                            input_file: str, output_file: str, stdin: str) -> ExecResult:
-        await self._run_commands([['chmod', '644', compiled_path]])
+        await self._run_commands([['chmod', '755', compiled_path]])
         # ВНИМАНИЕ ВНИМАНИЕ ВНИМАНИЕ
         # ПЕРЕД ПОПЫТКОЙ ПОСТАВИТЬ СЮДА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ,
         # ПРОЙДИ В КОНЕЦ ЭТОЙ ФУНКЦИИ И ПОСМОТРИ НА ВЫПОЛНЯЮЩУЮСЯ КОМАНДУ
