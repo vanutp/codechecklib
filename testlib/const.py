@@ -60,5 +60,5 @@ class TestResult(SimpleNamespace):
     first_error_test: int
 
 
-__all__ = ['LANGUAGES', 'COMPILE_COMMANDS', 'EXEC_COMMANDS', 'AVAILABLE_BINARIES', 'MY_USER', 'MY_UID',
+__all__ = ['LANGUAGES', 'COMPILE_COMMANDS', 'EXEC_COMMANDS', 'AVAILABLE_BINARIES', 'MY_USER',
            'TestingException', 'CgroupSetupException', 'ExecStatus', 'ExecResult', 'TestResult']
