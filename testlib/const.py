@@ -1,6 +1,8 @@
 import getpass
+import os
 from enum import Enum
 from types import SimpleNamespace
+from typing import List
 
 LANGUAGES = {'cpp': 'C++', 'cs': 'C#', 'c': 'C', 'py': 'Python'}
 
@@ -29,7 +31,11 @@ AVAILABLE_BINARIES = {
 MY_USER = getpass.getuser()
 
 
-class CgroupSetupException(Exception):
+class TestingException(Exception):
+    pass
+
+
+class CgroupSetupException(TestingException):
     pass
 
 
@@ -37,17 +43,8 @@ class ExecStatus(Enum):
     TL = 'TL'
     ML = 'ML'
     RE = 'RE'
-    INTERR = 'INTERR'
     OK = 'OK'
-
-
-EXEC_STATUS_TO_PT_STATUS = {
-    ExecStatus.TL: 1,
-    ExecStatus.ML: 6,
-    ExecStatus.RE: 3,
-    ExecStatus.INTERR: -1,
-    ExecStatus.OK: 0
-}
+    WA = 'WA'
 
 
 class ExecResult(SimpleNamespace):
@@ -57,5 +54,11 @@ class ExecResult(SimpleNamespace):
     stderr: str
 
 
-__all__ = ['LANGUAGES', 'COMPILE_COMMANDS', 'EXEC_COMMANDS', 'AVAILABLE_BINARIES', 'MY_USER', 'CgroupSetupException',
-           'ExecStatus', 'EXEC_STATUS_TO_PT_STATUS', 'ExecResult']
+class TestResult(SimpleNamespace):
+    success: bool
+    results: List[ExecResult]
+    first_error_test: int
+
+
+__all__ = ['LANGUAGES', 'COMPILE_COMMANDS', 'EXEC_COMMANDS', 'AVAILABLE_BINARIES', 'MY_USER', 'MY_UID',
+           'TestingException', 'CgroupSetupException', 'ExecStatus', 'ExecResult', 'TestResult']
