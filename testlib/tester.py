@@ -119,7 +119,8 @@ class Tester:
             run_time = time() - start_time
             stdout: str = '\n'.join([x.rstrip(' ') for x in result[0].decode().split('\n')]).rstrip(
                 '\r\n').rstrip('\n')
-            stderr: str = result[1].decode()
+            stderr: str = '\n'.join([x.rstrip(' ') for x in result[1].decode().split('\n')]).rstrip(
+                '\r\n').rstrip('\n')
 
             if process.returncode != 0:
                 memory_events = (await (await create_subprocess_exec('cat', f'{cgroup_path}/memory.events',
