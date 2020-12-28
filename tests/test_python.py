@@ -38,6 +38,13 @@ class TestPython(unittest.IsolatedAsyncioTestCase):
         res = await self.tester.run(compiled_filename, 'py_nl', memory=1024 * 1024 * 1)
         self.assertEqual(res.status, ExecStatus.ML)
 
+    async def test_fork(self):
+        test_program = 'import os\nwhile True: os.fork()'
+        is_success, compiled_filename, _, _ = await self.tester.compile(test_program, [], 'py_nl')
+        self.assertTrue(is_success)
+        res = await self.tester.run(compiled_filename, 'py_nl')
+        self.assertEqual(res.status, ExecStatus.RE)
+
     async def test_stdin_stdout_ok_multiple(self):
         test_program = '[print(int(input()) + 2) for _ in range(int(input()))]'
         is_success, compiled_filename, _, _ = await self.tester.compile(test_program, [], 'py_nl')
