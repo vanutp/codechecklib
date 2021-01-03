@@ -112,9 +112,6 @@ class Tester:
                 assert process.returncode is not None
                 return ExecResult(status=ExecStatus.TL, time=None, stdout=None, stderr=None)
 
-            if process.returncode == 127:
-                raise FileNotFoundError(process.stderr)
-
             result = await q.get()
             run_time = time() - start_time
             stdout: str = '\n'.join([x.rstrip(' ') for x in result[0].decode().split('\n')]).rstrip(
