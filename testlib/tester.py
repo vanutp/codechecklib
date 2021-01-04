@@ -104,29 +104,34 @@ class Tester:
         # ПЕРЕД ПОПЫТКОЙ ПОСТАВИТЬ СЮДА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ,
         # ПРОЙДИ В КОНЕЦ ЭТОЙ ФУНКЦИИ И ПОСМОТРИ НА ВЫПОЛНЯЮЩУЮСЯ КОМАНДУ
         user = 'ts_user_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-        await self._run_commands([['sudo', 'useradd', '-m', '-g', 'ts_user', user]])
-        await self._run_commands([['sudo', 'chown', '-R', user, tmpdir]])
+        await self._run_commands([['sudo', 'useradd', '-m', '-g', 'ts_user', user],
+                                  ['sudo', 'chown', '-R', user, tmpdir]])
         cgroup_path = await self._setup_cgroup(memory, 8, user)
 
-        if input_file:
-            await self._run_commands([['sudo', 'bash', '-c' f'echo {stdin.encode()} > /home/{user}/{input_file}']])
-
-        cmd = get_sandbox_command(has_internet, blacklist_dirs, EXEC_COMMANDS[language](os.path.join(tmpdir, 'code.o')),
-                                  AVAILABLE_BINARIES[language], True, cgroup_path, user)
-        process = await create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
-        async def background_execute(q: Queue, process: Process, stdin: str):
-            await q.put(await process.communicate(stdin.encode()))
-
-        q = Queue()
-        asyncio.create_task(background_execute(q, process, stdin if not input_file else ''))
-        start_time = time()
         try:
-            await asyncio.wait_for(process.wait(), timeout / 1000)
-        except asyncio.exceptions.TimeoutError:
-            pass
+            if input_file:
+                proc = await create_subprocess_exec('sudo', 'tee', f'/home/{user}/{input_file}',
+                                                    stdin=PIPE, stdout=PIPE, stderr=PIPE)
+                stdout, stderr = map(bytes.decode, await proc.communicate(stdin.encode()))
+                if proc.returncode:
+                    raise TestingException(f'Failed to write to input_file, {stderr}')
 
-        async def inner():
+            cmd = get_sandbox_command(has_internet, blacklist_dirs,
+                                      EXEC_COMMANDS[language](os.path.join(tmpdir, 'code.o')),
+                                      AVAILABLE_BINARIES[language], True, cgroup_path, user)
+            process = await create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+            async def background_execute(q: Queue, process: Process, stdin: str):
+                await q.put(await process.communicate(stdin.encode()))
+
+            q = Queue()
+            asyncio.create_task(background_execute(q, process, stdin if not input_file else ''))
+            start_time = time()
+            try:
+                await asyncio.wait_for(process.wait(), timeout / 1000)
+            except asyncio.exceptions.TimeoutError:
+                pass
+
             if process.returncode is None:
                 procs = (await (await create_subprocess_exec('cat', f'{cgroup_path}/cgroup.procs',
                                                              stdout=PIPE, stderr=PIPE))
@@ -163,50 +168,53 @@ class Tester:
                 stdout = '\n'.join([x.rstrip(' ') for x in result[0].decode().split('\n')]).rstrip('\r\n').rstrip('\n')
             return ExecResult(status=ExecStatus.OK, time=run_time, stdout=stdout, stderr=stderr)
 
-        res = await inner()
-        await self._remove_cgroup(cgroup_path)
-        await self._run_commands([['sudo', 'userdel', user], ['sudo', 'rm', '-rf', f'/home/{user}']])
-        return res
+        finally:
+            await self._remove_cgroup(cgroup_path)
+            await self._run_commands([['sudo', 'userdel', user], ['sudo', 'rm', '-rf', f'/home/{user}']])
 
     async def run(self, code: str, language: str, stdin: str = '', blacklist_dirs: List[str] = [],
                   timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                   input_file: str = '', output_file: str = '') -> ExecResult:
         tmpdir = await self._get_temp_dir()
-        is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir)
-        if is_success:
-            res = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs, language,
-                                          input_file, output_file, stdin)
-        else:
-            res = ExecResult(status=ExecStatus.CE, time=None, stdout=None, stderr=None)
-        res.compilation_time = compilation_time
-        res.compiler_message = compiler_message
-        await self._remove_temp_dir(tmpdir)
-        return res
+        try:
+            is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir)
+            if is_success:
+                res = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs, language,
+                                              input_file, output_file, stdin)
+            else:
+                res = ExecResult(status=ExecStatus.CE, time=None, stdout=None, stderr=None)
+            res.compilation_time = compilation_time
+            res.compiler_message = compiler_message
+            return res
+        finally:
+            await self._remove_temp_dir(tmpdir)
 
     async def test(self, code: str, language: str, tests: List[Tuple[str, str]],
                    blacklist_dirs: List[str] = [],
                    timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                    input_file: str = '', output_file: str = '') -> TestResult:
         tmpdir = await self._get_temp_dir()
-        is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir)
-        if is_success:
-            result = TestResult(results=[], success=True, first_error_test=-1, compilation_error=False)
-            for test_idx in range(len(tests)):
-                test = tests[test_idx]
-                result_now = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs,
-                                                     language, input_file, output_file, test[0])
-                result.results.append(result_now)
-                if result_now.status == ExecStatus.OK and result_now.stdout != test[1]:
-                    result.results[-1].status = ExecStatus.WA
-                if result.results[-1].status != ExecStatus.OK:
-                    result.success = False
-                    result.first_error_test = result.first_error_test if result.first_error_test != -1 else test_idx
-        else:
-            result = TestResult(success=False, compilation_error=True)
-        result.compilation_time = compilation_time
-        result.compiler_message = compiler_message
-        await self._remove_temp_dir(tmpdir)
-        return result
+        try:
+            is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir)
+            if is_success:
+                result = TestResult(results=[], success=True, first_error_test=-1, compilation_error=False)
+                for test_idx in range(len(tests)):
+                    test = tests[test_idx]
+                    result_now = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs,
+                                                         language, input_file, output_file, test[0])
+                    result.results.append(result_now)
+                    if result_now.status == ExecStatus.OK and result_now.stdout != test[1]:
+                        result.results[-1].status = ExecStatus.WA
+                    if result.results[-1].status != ExecStatus.OK:
+                        result.success = False
+                        result.first_error_test = result.first_error_test if result.first_error_test != -1 else test_idx
+            else:
+                result = TestResult(success=False, compilation_error=True)
+            result.compilation_time = compilation_time
+            result.compiler_message = compiler_message
+            return result
+        finally:
+            await self._remove_temp_dir(tmpdir)
 
 
 __all__ = ['Tester']

@@ -35,6 +35,15 @@ class TestPython(unittest.IsolatedAsyncioTestCase):
         res = await self.tester.run(test_program, 'py_nl')
         self.assertEqual(res.status, ExecStatus.RE)
 
+    async def test_input_output_file(self):
+        test_program = '''import sys
+sys.stdin = open('input.txt')
+sys.stdout = open('output.txt', 'w')
+[print(int(input()) + 2) for _ in range(int(input()))]'''
+        res = await self.tester.run(test_program, 'py_nl', '2\n3\n4', input_file='input.txt', output_file='output.txt')
+        self.assertEqual(res.status, ExecStatus.OK)
+        self.assertEqual(res.stdout, '5\n6')
+
     async def test_stdin_stdout_ok_multiple(self):
         test_program = '[print(int(input()) + 2) for _ in range(int(input()))]'
         res = await self.tester.test(test_program, 'py_nl', [('2\n3\n4', '5\n6'),
