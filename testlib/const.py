@@ -7,11 +7,11 @@ from typing import List
 LANGUAGES = {'cpp': 'C++', 'cs': 'C#', 'c': 'C', 'py': 'Python'}
 
 COMPILE_COMMANDS = {
-    'cs': lambda filename: (['mcs', '-optimize', '-nologo', f'-out:' + filename + '.o', filename], filename + '.o'),
-    'cpp': lambda filename: (['g++', '-x', 'c++', '-o', filename + '.o', filename], filename + '.o'),
-    'c': lambda filename: (['gcc', '-x', 'c++', '-o', filename + '.o', filename], filename + '.o'),
-    'py': lambda filename: (['pylint', '--disable=R,C', filename], filename),
-    'py_nl': lambda filename: (['echo'], filename),
+    'cs': lambda filename: ['mcs', '-optimize', '-nologo', f'-out:' + filename + '.o', filename],
+    'cpp': lambda filename: ['g++', '-x', 'c++', '-o', filename + '.o', filename],
+    'c': lambda filename: ['gcc', '-x', 'c++', '-o', filename + '.o', filename],
+    'py': lambda filename: [['pylint', '--disable=R,C', filename], ['cp', filename, filename + '.o']],
+    'py_nl': lambda filename: ['cp', filename, filename + '.o'],
 }
 EXEC_COMMANDS = {
     'cs': lambda filename: ['mono', filename],
@@ -24,8 +24,8 @@ AVAILABLE_BINARIES = {
     'cs': ['env', 'bash', 'sh', 'mono', 'mcs'],
     'cpp': ['env', 'bash', 'sh', 'g++', 'ld', 'as'],
     'c': ['env', 'bash', 'sh', 'gcc', 'ld', 'as'],
-    'py': ['env', 'bash', 'sh', 'python', 'python3', 'pylint'],
-    'py_nl': ['env', 'bash', 'sh', 'python', 'python3', 'echo'],
+    'py': ['env', 'bash', 'sh', 'python', 'python3', 'pylint', 'cp'],
+    'py_nl': ['env', 'bash', 'sh', 'python', 'python3', 'cp'],
 }
 
 MY_USER = getpass.getuser()
@@ -40,6 +40,7 @@ class CgroupSetupException(TestingException):
 
 
 class ExecStatus(str, Enum):
+    CE = 'CE'
     TL = 'TL'
     ML = 'ML'
     RE = 'RE'
@@ -49,6 +50,8 @@ class ExecStatus(str, Enum):
 
 class ExecResult(SimpleNamespace):
     status: ExecStatus
+    compilation_time: float
+    compiler_message: str
     time: float
     stdout: str
     stderr: str
@@ -56,6 +59,9 @@ class ExecResult(SimpleNamespace):
 
 class TestResult(SimpleNamespace):
     success: bool
+    compilation_time: float
+    compiler_message: str
+    compilation_error: bool
     results: List[ExecResult]
     first_error_test: int
 

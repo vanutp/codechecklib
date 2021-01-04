@@ -4,35 +4,18 @@ import random
 import string
 from asyncio import Queue
 from asyncio.subprocess import create_subprocess_exec, PIPE, DEVNULL, Process
-from tempfile import NamedTemporaryFile
 from time import time
 from typing import List, Tuple
 
 from .const import COMPILE_COMMANDS, AVAILABLE_BINARIES, ExecResult, EXEC_COMMANDS, ExecStatus, \
     CgroupSetupException, TestResult, MY_USER, TestingException
 from .sandbox import get_sandbox_command
+from .utils import mkdtemp
 
 
 class Tester:
     def __init__(self):
         pass
-
-    async def compile(self, code, blacklist_dirs: List[str], language: str):
-        file = NamedTemporaryFile('w+b', delete=False)
-        filename = file.name
-        file.write(code.encode('utf-8'))
-        file.close()
-        cmd, compiled_filename = COMPILE_COMMANDS[language](filename)
-        cmd = get_sandbox_command(False, blacklist_dirs, cmd, AVAILABLE_BINARIES[language], True)
-        start_time = time()
-        process = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
-        res = await process.communicate()
-        compiler_message = res[0].decode() + '\n' + res[1].decode()
-        compilation_time = time() - start_time
-        if process.returncode == 127:
-            raise FileNotFoundError()
-        is_success = process.returncode == 0
-        return is_success, compiled_filename, compilation_time, compiler_message
 
     async def _run_commands(self, commands: List[List[str]], exception=TestingException):
         for cmd in commands:
@@ -72,21 +55,63 @@ class Tester:
     async def _remove_cgroup(self, cgroup_path):
         await self._run_commands([['sudo', 'rmdir', cgroup_path]])
 
-    async def _execute_one(self, compiled_path: str, timeout: int, memory: int,
+    async def _get_temp_dir(self):
+        if not os.path.isdir('/ts_tmp'):
+            await self._run_commands([['sudo', 'mkdir', '/ts_tmp'],
+                                      ['sudo', 'chown', f'{MY_USER}:ts_user', '/ts_tmp'],
+                                      ['sudo', 'chmod', '755', '/ts_tmp']])
+        res = mkdtemp('/ts_tmp')
+        await self._run_commands([['sudo', 'mount', '-t', 'tmpfs', '-o', 'size=300m,nodev,nosuid', 'tmpfs', res],
+                                  ['sudo', 'chown', f'{MY_USER}:ts_user', res],
+                                  ['sudo', 'chmod', '750', res]])
+        return res
+
+    async def _remove_temp_dir(self, dir):
+        await self._run_commands([['sudo', 'umount', dir],
+                                  ['sudo', 'rm', '-rf', dir]])
+
+    async def _compile(self, code, blacklist_dirs: List[str], language: str, tmpdir: str):
+        filename = os.path.join(tmpdir, 'code')
+        file = open(filename, 'wb')
+        file.write(code.encode('utf-8'))
+        file.close()
+        cmds = COMPILE_COMMANDS[language](filename)
+        compilation_time = 0
+        compiler_message = ''
+        is_success = True
+        if len(cmds) == 0 or not isinstance(cmds[0], list):
+            cmds = [cmds]
+
+        for cmd in cmds:
+            cmd = get_sandbox_command(False, blacklist_dirs, cmd, AVAILABLE_BINARIES[language], True)
+            start_time = time()
+            process = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
+            res = await process.communicate()
+            if process.returncode == 127:
+                raise FileNotFoundError()
+            compiler_message = (compiler_message + '\n' + res[0].decode() + '\n' + res[1].decode()).strip()
+            compilation_time += time() - start_time
+            is_success = process.returncode == 0
+            if not is_success:
+                break
+
+        return is_success, compilation_time, compiler_message
+
+    async def _execute_one(self, tmpdir: str, timeout: int, memory: int,
                            has_internet: bool, blacklist_dirs: List[str], language: str,
                            input_file: str, output_file: str, stdin: str) -> ExecResult:
-        await self._run_commands([['chmod', '755', compiled_path]])
         # ВНИМАНИЕ ВНИМАНИЕ ВНИМАНИЕ
         # ПЕРЕД ПОПЫТКОЙ ПОСТАВИТЬ СЮДА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ,
         # ПРОЙДИ В КОНЕЦ ЭТОЙ ФУНКЦИИ И ПОСМОТРИ НА ВЫПОЛНЯЮЩУЮСЯ КОМАНДУ
         user = 'ts_user_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
         await self._run_commands([['sudo', 'useradd', '-m', '-g', 'ts_user', user]])
+        await self._run_commands([['sudo', 'chown', '-R', user, tmpdir]])
         cgroup_path = await self._setup_cgroup(memory, 8, user)
 
         if input_file:
             await self._run_commands([['sudo', 'bash', '-c' f'echo {stdin.encode()} > /home/{user}/{input_file}']])
 
-        cmd = get_sandbox_command(has_internet, blacklist_dirs, EXEC_COMMANDS[language](compiled_path),
+        cmd = get_sandbox_command(has_internet, blacklist_dirs, EXEC_COMMANDS[language](os.path.join(tmpdir, 'code.o')),
                                   AVAILABLE_BINARIES[language], True, cgroup_path, user)
         process = await create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
@@ -133,7 +158,7 @@ class Tester:
                 return ExecResult(status=ExecStatus.RE, time=run_time, stdout=stdout, stderr=stderr)
 
             if output_file:
-                result = await (await create_subprocess_exec('sudo', 'cat', f'cat /home/{user}/{output_file}',
+                result = await (await create_subprocess_exec('sudo', 'cat', f'/home/{user}/{output_file}',
                                                              stdin=PIPE, stdout=PIPE, stderr=PIPE)).communicate()
                 stdout = '\n'.join([x.rstrip(' ') for x in result[0].decode().split('\n')]).rstrip('\r\n').rstrip('\n')
             return ExecResult(status=ExecStatus.OK, time=run_time, stdout=stdout, stderr=stderr)
@@ -143,28 +168,44 @@ class Tester:
         await self._run_commands([['sudo', 'userdel', user], ['sudo', 'rm', '-rf', f'/home/{user}']])
         return res
 
-    async def run(self, compiled_path: str, language: str, stdin: str = '', blacklist_dirs: List[str] = [],
+    async def run(self, code: str, language: str, stdin: str = '', blacklist_dirs: List[str] = [],
                   timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                   input_file: str = '', output_file: str = '') -> ExecResult:
-        return await self._execute_one(compiled_path, timeout, memory, has_internet, blacklist_dirs, language,
-                                       input_file,
-                                       output_file, stdin)
+        tmpdir = await self._get_temp_dir()
+        is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir)
+        if is_success:
+            res = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs, language,
+                                          input_file, output_file, stdin)
+        else:
+            res = ExecResult(status=ExecStatus.CE, time=None, stdout=None, stderr=None)
+        res.compilation_time = compilation_time
+        res.compiler_message = compiler_message
+        await self._remove_temp_dir(tmpdir)
+        return res
 
-    async def test(self, compiled_path: str, language: str, tests: List[Tuple[str, str]],
+    async def test(self, code: str, language: str, tests: List[Tuple[str, str]],
                    blacklist_dirs: List[str] = [],
                    timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                    input_file: str = '', output_file: str = '') -> TestResult:
-        result = TestResult(results=[], success=True, first_error_test=-1)
-        for test_idx in range(len(tests)):
-            test = tests[test_idx]
-            result_now = await self._execute_one(compiled_path, timeout, memory, has_internet, blacklist_dirs, language,
-                                                 input_file, output_file, test[0])
-            result.results.append(result_now)
-            if result_now.status == ExecStatus.OK and result_now.stdout != test[1]:
-                result.results[-1].status = ExecStatus.WA
-            if result.results[-1].status != ExecStatus.OK:
-                result.success = False
-                result.first_error_test = result.first_error_test if result.first_error_test != -1 else test_idx
+        tmpdir = await self._get_temp_dir()
+        is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir)
+        if is_success:
+            result = TestResult(results=[], success=True, first_error_test=-1, compilation_error=False)
+            for test_idx in range(len(tests)):
+                test = tests[test_idx]
+                result_now = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs,
+                                                     language, input_file, output_file, test[0])
+                result.results.append(result_now)
+                if result_now.status == ExecStatus.OK and result_now.stdout != test[1]:
+                    result.results[-1].status = ExecStatus.WA
+                if result.results[-1].status != ExecStatus.OK:
+                    result.success = False
+                    result.first_error_test = result.first_error_test if result.first_error_test != -1 else test_idx
+        else:
+            result = TestResult(success=False, compilation_error=True)
+        result.compilation_time = compilation_time
+        result.compiler_message = compiler_message
+        await self._remove_temp_dir(tmpdir)
         return result
 
 

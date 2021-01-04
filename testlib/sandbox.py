@@ -4,7 +4,7 @@ from typing import List, Optional
 def get_sandbox_command(has_internet: bool, blacklist_dirs: List[str], real_command: List[str] or str,
                         available_binaries: List[str], return_list: bool, cgroup_path: Optional[str] = None,
                         user: Optional[str] = None):
-    command = 'firejail --private-dev --shell=none --seccomp --quiet --caps --noroot'
+    command = 'firejail --private-dev --private-tmp --shell=none --seccomp --quiet --caps --noroot'
     blacklist_dirs = blacklist_dirs.copy()
     if user:
         command = 'sudo -u ' + user + ' ' + command
