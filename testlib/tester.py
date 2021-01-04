@@ -4,13 +4,13 @@ import random
 import string
 from asyncio import Queue
 from asyncio.subprocess import create_subprocess_exec, PIPE, DEVNULL, Process
+from tempfile import mkdtemp
 from time import time
 from typing import List, Tuple
 
 from .const import COMPILE_COMMANDS, AVAILABLE_BINARIES, ExecResult, EXEC_COMMANDS, ExecStatus, \
     CgroupSetupException, TestResult, MY_USER, TestingException
 from .sandbox import get_sandbox_command
-from .utils import mkdtemp
 
 
 class Tester:
@@ -60,7 +60,7 @@ class Tester:
             await self._run_commands([['sudo', 'mkdir', '/ts_tmp'],
                                       ['sudo', 'chown', f'{MY_USER}:ts_user', '/ts_tmp'],
                                       ['sudo', 'chmod', '755', '/ts_tmp']])
-        res = mkdtemp('/ts_tmp')
+        res = mkdtemp(dir='/ts_tmp')
         await self._run_commands([['sudo', 'mount', '-t', 'tmpfs', '-o', 'size=300m,nodev,nosuid', 'tmpfs', res],
                                   ['sudo', 'chown', f'{MY_USER}:ts_user', res],
                                   ['sudo', 'chmod', '750', res]])
