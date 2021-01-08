@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='testlib',
-    version='0.3.1',
+    version='0.3.2',
     author='vanutp',
     author_email='hello@vanutp.dev',
     description='Simple sandbox & testing utility',
