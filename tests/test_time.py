@@ -5,7 +5,7 @@ from time import time
 
 from tqdm import tqdm
 
-from testlib import Tester
+from codechecklib import Tester
 
 tester = Tester()
 

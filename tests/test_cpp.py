@@ -1,7 +1,7 @@
 import unittest
 
-from testlib import Tester
-from testlib.const import ExecStatus
+from codechecklib import Tester
+from codechecklib.const import ExecStatus
 
 
 class TestCpp(unittest.IsolatedAsyncioTestCase):
