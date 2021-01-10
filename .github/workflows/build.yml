@@ -1,0 +1,27 @@
+name: Build & deploy
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build_and_upload:
+    name: Build and upload to PyPi
+    container: python:3.9-alpine
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir twine
+      - name: Build
+        run: |
+          python setup.py sdist bdist_wheel
+      - name: Upload
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          TWINE_PASSWORD=$PYPI_TOKEN TWINE_USERNAME=__token__ python -m twine upload dist/*

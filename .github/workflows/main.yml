@@ -1,0 +1,38 @@
+name: Mirror & lint
+
+on: push
+
+jobs:
+  mirror:
+    name: Mirror the code to GVD
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure ssh
+        uses: webfactory/ssh-agent@v0.4.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Add GVD host keys
+        run: |
+          ssh-keyscan ssh.vanutp.dev >> ~/.ssh/known_hosts
+      - name: Mirror
+        shell: bash
+        run: |
+          git clone --mirror git@github.com:vanutp/codechecklib.git repo
+          cd repo
+          git remote set-url --push origin git@ssh.vanutp.dev:vanutp/testlib.git
+          git push --mirror
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.9-alpine
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir pylint
+      - name: Lint
+        run: |
+          pylint $(find ./codechecklib -path '*.py' -print)
