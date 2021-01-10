@@ -28,7 +28,7 @@ class Tester:
         if not os.path.isfile('/sys/fs/cgroup/cgroup.subtree_control'):
             raise CgroupSetupException('cgroups v2 required')
         cgroup_name = user
-        cgroup_base_dir = f'/sys/fs/cgroup/ts'
+        cgroup_base_dir = '/sys/fs/cgroup/ts'
         if not os.path.isdir(cgroup_base_dir):
             commands = [
                 f'mkdir {cgroup_base_dir}',
@@ -66,9 +66,9 @@ class Tester:
                                   ['sudo', 'chmod', '750', res]])
         return res
 
-    async def _remove_temp_dir(self, dir):
-        await self._run_commands([['sudo', 'umount', dir],
-                                  ['sudo', 'rm', '-rf', dir]])
+    async def _remove_temp_dir(self, name):
+        await self._run_commands([['sudo', 'umount', name],
+                                  ['sudo', 'rm', '-rf', name]])
 
     async def _compile(self, code, blacklist_dirs: List[str], language: str, tmpdir: str, timeout: int, memory: int):
         filename = os.path.join(tmpdir, 'code')
@@ -213,6 +213,7 @@ class Tester:
             await self._run_commands([['sudo', 'userdel', user], ['sudo', 'rm', '-rf', f'/home/{user}']])
 
     async def run(self, code: str, language: str, stdin: str = '', blacklist_dirs: List[str] = [],
+                  # pylint: disable=W0102
                   timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                   input_file: str = '', output_file: str = '',
                   compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256) -> ExecResult:
@@ -232,8 +233,8 @@ class Tester:
         finally:
             await self._remove_temp_dir(tmpdir)
 
-    async def test(self, code: str, language: str, tests: List[Tuple[str, str]],
-                   blacklist_dirs: List[str] = [],
+    async def test(self, code: str, language: str, tests: List[Tuple[str, str]], blacklist_dirs: List[str] = [],
+                   # pylint: disable=W0102
                    timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                    input_file: str = '', output_file: str = '',
                    compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256) -> TestResult:
@@ -244,8 +245,7 @@ class Tester:
                                                                                  compilation_memory)
             if is_success:
                 result = TestResult(results=[], success=True, first_error_test=-1, compilation_error=False)
-                for test_idx in range(len(tests)):
-                    test = tests[test_idx]
+                for test_idx, test in enumerate(tests):
                     result_now = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs,
                                                          language, input_file, output_file, test[0])
                     result.results.append(result_now)

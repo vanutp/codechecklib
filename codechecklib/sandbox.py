@@ -16,7 +16,7 @@ def get_sandbox_command(has_internet: bool, blacklist_dirs: List[str], real_comm
     for i in blacklist_dirs:
         command += f' --blacklist={i}'
     if available_binaries:
-        command += f' --private-bin=' + ','.join(available_binaries)
+        command += ' --private-bin=' + ','.join(available_binaries)
     if cgroup_path:
         command += f' --cgroup={cgroup_path}/cgroup.procs'
     command += ' env -i LC_ALL=en_US.UTF-8 PATH=/bin:/usr/bin:/usr/local/bin '

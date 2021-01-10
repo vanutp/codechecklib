@@ -1,5 +1,4 @@
 import getpass
-import os
 from enum import Enum
 from types import SimpleNamespace
 from typing import List
@@ -7,7 +6,7 @@ from typing import List
 LANGUAGES = {'cpp': 'C++', 'cs': 'C#', 'c': 'C', 'py': 'Python'}
 
 COMPILE_COMMANDS = {
-    'cs': lambda filename: ['mcs', '-optimize', '-nologo', f'-out:' + filename + '.o', filename],
+    'cs': lambda filename: ['mcs', '-optimize', '-nologo', '-out:' + filename + '.o', filename],
     'cpp': lambda filename: ['g++', '-x', 'c++', '-o', filename + '.o', filename],
     'c': lambda filename: ['gcc', '-x', 'c++', '-o', filename + '.o', filename],
     'py': lambda filename: [['pylint', '--disable=R,C', filename], ['cp', filename, filename + '.o']],
