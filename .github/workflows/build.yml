@@ -1,9 +1,9 @@
-name: Build & deploy
+name: Build & release to PyPi and Gitlab
 
 on:
   push:
     tags:
-      - v*
+      - 'v*'
 
 jobs:
   build_and_upload:
@@ -20,8 +20,17 @@ jobs:
       - name: Build
         run: |
           python setup.py sdist bdist_wheel
-      - name: Upload
+      - name: Release to PyPi
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           TWINE_PASSWORD=$PYPI_TOKEN TWINE_USERNAME=__token__ python -m twine upload dist/*
+      - name: Release to Github
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
