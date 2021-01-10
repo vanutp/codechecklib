@@ -25,7 +25,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: python:3.9-alpine
+      image: python:3.8-alpine
 
     steps:
       - name: Clone
