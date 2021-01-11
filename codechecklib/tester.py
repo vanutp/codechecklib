@@ -119,7 +119,7 @@ class Tester:
 
                 result = await q.get()
                 compilation_time += time() - start_time
-                compiler_message = (compiler_message + '\n' + result[0].decode(encoding, errors='replace') + '\n' + 
+                compiler_message = (compiler_message + '\n' + result[0].decode(encoding, errors='replace') + '\n' +
                                     result[1].decode(encoding, errors='replace')).strip()
 
                 if process.returncode != 0:
@@ -154,7 +154,7 @@ class Tester:
             if input_file:
                 proc = await create_subprocess_exec('sudo', 'tee', f'/home/{user}/{input_file}',
                                                     stdin=PIPE, stdout=PIPE, stderr=PIPE)
-                stdout, stderr = map(lambda x: x.decode(encoding, errors='replace'), 
+                stdout, stderr = map(lambda x: x.decode(encoding, errors='replace'),
                                      await proc.communicate(stdin.encode()))
                 if proc.returncode:
                     raise TestingException(f'Failed to write to input_file, {stderr}')
