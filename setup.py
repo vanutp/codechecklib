@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='codechecklib',
-    version='0.3.7',
+    version='0.3.7.1',
     author='vanutp',
     author_email='hello@vanutp.dev',
     description='Simple sandbox & testing utility',

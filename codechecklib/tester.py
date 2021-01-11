@@ -155,7 +155,7 @@ class Tester:
                 proc = await create_subprocess_exec('sudo', 'tee', f'/home/{user}/{input_file}',
                                                     stdin=PIPE, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = map(lambda x: x.decode(encoding, errors='replace'),
-                                     await proc.communicate(stdin.encode()))
+                                     await proc.communicate(stdin.encode(encoding)))
                 if proc.returncode:
                     raise TestingException(f'Failed to write to input_file, {stderr}')
 
@@ -165,7 +165,7 @@ class Tester:
             process = await create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
             async def background_execute(q: Queue, process: Process, stdin: str):
-                await q.put(await process.communicate(stdin.encode()))
+                await q.put(await process.communicate(stdin.encode(encoding)))
 
             q = Queue()
             asyncio.create_task(background_execute(q, process, stdin if not input_file else ''))
@@ -221,15 +221,15 @@ class Tester:
                   timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                   input_file: str = '', output_file: str = '',
                   compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
-                   encoding: str = 'utf-8') -> ExecResult:
+                  data_encoding: str = 'utf-8', source_encoding: str = 'utf-8') -> ExecResult:
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
                                                                                  compilation_timeout,
-                                                                                 compilation_memory, encoding)
+                                                                                 compilation_memory, source_encoding)
             if is_success:
                 res = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs, language,
-                                              input_file, output_file, stdin, encoding)
+                                              input_file, output_file, stdin, data_encoding)
             else:
                 res = ExecResult(status=ExecStatus.CE, time=None, stdout=None, stderr=None)
             res.compilation_time = compilation_time
@@ -243,17 +243,17 @@ class Tester:
                    timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                    input_file: str = '', output_file: str = '',
                    compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
-                   encoding: str = 'utf-8') -> TestResult:
+                   data_encoding: str = 'utf-8', source_encoding: str = 'utf-8') -> TestResult:
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
                                                                                  compilation_timeout,
-                                                                                 compilation_memory, encoding)
+                                                                                 compilation_memory, source_encoding)
             if is_success:
                 result = TestResult(results=[], success=True, first_error_test=-1, compilation_error=False)
                 for test_idx, test in enumerate(tests):
                     result_now = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs,
-                                                         language, input_file, output_file, test[0], encoding)
+                                                         language, input_file, output_file, test[0], data_encoding)
                     result.results.append(result_now)
                     if result_now.status == ExecStatus.OK and result_now.stdout != test[1]:
                         result.results[-1].status = ExecStatus.WA
