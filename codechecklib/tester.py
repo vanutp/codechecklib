@@ -70,10 +70,11 @@ class Tester:
         await self._run_commands([['sudo', 'umount', name],
                                   ['sudo', 'rm', '-rf', name]])
 
-    async def _compile(self, code, blacklist_dirs: List[str], language: str, tmpdir: str, timeout: int, memory: int):
+    async def _compile(self, code, blacklist_dirs: List[str], language: str, tmpdir: str, timeout: int, memory: int,
+                       encoding: str):
         filename = os.path.join(tmpdir, 'code')
         file = open(filename, 'wb')
-        file.write(code.encode('utf-8'))
+        file.write(code.encode(encoding))
         file.close()
         cmds = COMPILE_COMMANDS[language](filename)
         compilation_time = 0
@@ -109,7 +110,7 @@ class Tester:
                 if process.returncode is None:
                     procs = (await (await create_subprocess_exec('cat', f'{cgroup_path}/cgroup.procs',
                                                                  stdout=PIPE, stderr=PIPE))
-                             .communicate())[0].decode().split('\n')
+                             .communicate())[0].decode(encoding, errors='replace').split('\n')
                     for proc in procs:
                         await (await create_subprocess_exec('sudo', 'kill', '-9', proc,
                                                             stdout=DEVNULL, stderr=DEVNULL)).wait()
@@ -118,12 +119,13 @@ class Tester:
 
                 result = await q.get()
                 compilation_time += time() - start_time
-                compiler_message = (compiler_message + '\n' + result[0].decode() + '\n' + result[1].decode()).strip()
+                compiler_message = (compiler_message + '\n' + result[0].decode(encoding, errors='replace') + '\n' + 
+                                    result[1].decode(encoding, errors='replace')).strip()
 
                 if process.returncode != 0:
                     memory_events = (await (await create_subprocess_exec('cat', f'{cgroup_path}/memory.events',
                                                                          stdout=PIPE, stderr=PIPE))
-                                     .communicate())[0].decode().split('\n')
+                                     .communicate())[0].decode(encoding, errors='replace').split('\n')
                     for line in memory_events:
                         if not line:
                             continue
@@ -139,7 +141,7 @@ class Tester:
 
     async def _execute_one(self, tmpdir: str, timeout: int, memory: int,
                            has_internet: bool, blacklist_dirs: List[str], language: str,
-                           input_file: str, output_file: str, stdin: str) -> ExecResult:
+                           input_file: str, output_file: str, stdin: str, encoding: str) -> ExecResult:
         # ВНИМАНИЕ ВНИМАНИЕ ВНИМАНИЕ
         # ПЕРЕД ПОПЫТКОЙ ПОСТАВИТЬ СЮДА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ,
         # ПРОЙДИ В КОНЕЦ ЭТОЙ ФУНКЦИИ И ПОСМОТРИ НА ВЫПОЛНЯЮЩУЮСЯ КОМАНДУ
@@ -152,7 +154,8 @@ class Tester:
             if input_file:
                 proc = await create_subprocess_exec('sudo', 'tee', f'/home/{user}/{input_file}',
                                                     stdin=PIPE, stdout=PIPE, stderr=PIPE)
-                stdout, stderr = map(bytes.decode, await proc.communicate(stdin.encode()))
+                stdout, stderr = map(lambda x: x.decode(encoding, errors='replace'), 
+                                     await proc.communicate(stdin.encode()))
                 if proc.returncode:
                     raise TestingException(f'Failed to write to input_file, {stderr}')
 
@@ -175,7 +178,7 @@ class Tester:
             if process.returncode is None:
                 procs = (await (await create_subprocess_exec('cat', f'{cgroup_path}/cgroup.procs',
                                                              stdout=PIPE, stderr=PIPE))
-                         .communicate())[0].decode().split('\n')
+                         .communicate())[0].decode(encoding, errors='replace').split('\n')
                 for proc in procs:
                     await (await create_subprocess_exec('sudo', 'kill', '-9', proc,
                                                         stdout=DEVNULL, stderr=DEVNULL)).wait()
@@ -184,15 +187,15 @@ class Tester:
 
             result = await q.get()
             run_time = time() - start_time
-            stdout: str = '\n'.join([x.rstrip(' ') for x in result[0].decode().split('\n')]).rstrip(
-                '\r\n').rstrip('\n')
-            stderr: str = '\n'.join([x.rstrip(' ') for x in result[1].decode().split('\n')]).rstrip(
-                '\r\n').rstrip('\n')
+            stdout: str = '\n'.join([x.rstrip(' ') for x in result[0].decode(encoding, errors='replace').
+                                    split('\n')]).rstrip('\r\n').rstrip('\n')
+            stderr: str = '\n'.join([x.rstrip(' ') for x in result[1].decode(encoding, errors='replace').
+                                    split('\n')]).rstrip('\r\n').rstrip('\n')
 
             if process.returncode != 0:
                 memory_events = (await (await create_subprocess_exec('cat', f'{cgroup_path}/memory.events',
                                                                      stdout=PIPE, stderr=PIPE))
-                                 .communicate())[0].decode().split('\n')
+                                 .communicate())[0].decode(encoding, errors='replace').split('\n')
                 for line in memory_events:
                     if not line:
                         continue
@@ -205,7 +208,8 @@ class Tester:
             if output_file:
                 result = await (await create_subprocess_exec('sudo', 'cat', f'/home/{user}/{output_file}',
                                                              stdin=PIPE, stdout=PIPE, stderr=PIPE)).communicate()
-                stdout = '\n'.join([x.rstrip(' ') for x in result[0].decode().split('\n')]).rstrip('\r\n').rstrip('\n')
+                stdout = '\n'.join([x.rstrip(' ') for x in result[0].decode(encoding, errors='replace').
+                                   split('\n')]).rstrip('\r\n').rstrip('\n')
             return ExecResult(status=ExecStatus.OK, time=run_time, stdout=stdout, stderr=stderr)
 
         finally:
@@ -216,15 +220,16 @@ class Tester:
                   # pylint: disable=W0102
                   timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                   input_file: str = '', output_file: str = '',
-                  compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256) -> ExecResult:
+                  compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
+                   encoding: str = 'utf-8') -> ExecResult:
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
                                                                                  compilation_timeout,
-                                                                                 compilation_memory)
+                                                                                 compilation_memory, encoding)
             if is_success:
                 res = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs, language,
-                                              input_file, output_file, stdin)
+                                              input_file, output_file, stdin, encoding)
             else:
                 res = ExecResult(status=ExecStatus.CE, time=None, stdout=None, stderr=None)
             res.compilation_time = compilation_time
@@ -237,17 +242,18 @@ class Tester:
                    # pylint: disable=W0102
                    timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                    input_file: str = '', output_file: str = '',
-                   compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256) -> TestResult:
+                   compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
+                   encoding: str = 'utf-8') -> TestResult:
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
                                                                                  compilation_timeout,
-                                                                                 compilation_memory)
+                                                                                 compilation_memory, encoding)
             if is_success:
                 result = TestResult(results=[], success=True, first_error_test=-1, compilation_error=False)
                 for test_idx, test in enumerate(tests):
                     result_now = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs,
-                                                         language, input_file, output_file, test[0])
+                                                         language, input_file, output_file, test[0], encoding)
                     result.results.append(result_now)
                     if result_now.status == ExecStatus.OK and result_now.stdout != test[1]:
                         result.results[-1].status = ExecStatus.WA
