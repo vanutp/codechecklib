@@ -20,7 +20,7 @@ jobs:
         run: |
           git clone --mirror git@github.com:vanutp/codechecklib.git repo
           cd repo
-          git remote set-url --push origin git@ssh.vanutp.dev:vanutp/testlib.git
+          git remote set-url --push origin git@ssh.vanutp.dev:vanutp/codechecklib.git
           git push --mirror
   lint:
     runs-on: ubuntu-latest

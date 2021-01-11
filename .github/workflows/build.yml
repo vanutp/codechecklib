@@ -7,8 +7,8 @@ on:
 
 jobs:
   build_and_upload:
-    name: Build and upload to PyPi
-    container: python:3.9-alpine
+    name: Build & release to PyPi and Gitlab
+    container: python:3.9-slim
     runs-on: ubuntu-latest
 
     steps:
@@ -20,17 +20,45 @@ jobs:
       - name: Build
         run: |
           python setup.py sdist bdist_wheel
+      - name: Release to Github
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # https://github.com/actions/upload-release-asset/issues/47#issuecomment-659071145
+          script: |
+            const fs = require('fs').promises
+            const { repo: { owner, repo }, sha } = context
+            const tag = context.payload.ref.replace(/refs\/tags\//, '')
+            const version = tag.replace(/v/, '')
+            const filename = `./dist/codechecklib-${version}-py3-none-any.whl`
+            const release_filename = `codechecklib-${version}-py3-none-any.whl`
+
+            let release
+            try {
+              release = await github.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              })
+            } catch {
+              release = await github.repos.createRelease({
+                owner, repo,
+                tag_name: tag,
+                draft: false,
+                target_commitish: sha
+              });
+            }
+
+            console.log('uploading', filename)
+            const asset = await github.repos.uploadReleaseAsset({
+              owner, repo,
+              release_id: release.data.id,
+              name: release_filename,
+              data: await fs.readFile(filename)
+            })
+            console.log('uploaded', asset)
       - name: Release to PyPi
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           TWINE_PASSWORD=$PYPI_TOKEN TWINE_USERNAME=__token__ python -m twine upload dist/*
-      - name: Release to Github
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: false
-          prerelease: false
