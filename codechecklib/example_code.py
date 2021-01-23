@@ -7,7 +7,7 @@ namespace Example
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine(Console.ReadLine());
+            Console.WriteLine("Hello, world!");
         }
     }
 }''',
@@ -22,10 +22,12 @@ int main()
 }''',
     'c': '''#include <stdio.h>
 int main() {
-   printf("Hello, World!");
+   printf("Hello, world!");
    return 0;
 }''',
-    'py': 'print(\'Hello, World!\')'
+    'py': 'print(\'Hello, world!\')',
+    'rb': 'puts \'Hello, world!\''
 }
+EXAMPLE_CODES['py_nl'] = EXAMPLE_CODES['py']
 
 __all__ = ['EXAMPLE_CODES']
