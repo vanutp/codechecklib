@@ -16,3 +16,4 @@ console.log(parseInt(data) + 1);
         res = await self.tester.run(test_program, 'js', '2')
         self.assertEqual(res.status, ExecStatus.OK)
         self.assertEqual(res.stdout, '3')
+        self.assertEqual(res.stderr, '')

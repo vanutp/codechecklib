@@ -71,7 +71,7 @@ class Tester:
                                   ['sudo', 'rm', '-rf', name]])
 
     async def _compile(self, code, blacklist_dirs: List[str], language: str, tmpdir: str, timeout: int, memory: int,
-                       encoding: str):
+                       encoding: str, max_proc: int):
         filename = os.path.join(tmpdir, 'code')
         file = open(filename, 'wb')
         file.write(code.encode(encoding))
@@ -88,7 +88,7 @@ class Tester:
         user = 'ts_user_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
         await self._run_commands([['sudo', 'useradd', '-m', '-g', 'ts_user', user],
                                   ['sudo', 'chown', '-R', user, tmpdir]])
-        cgroup_path = await self._setup_cgroup(memory, 8, user)
+        cgroup_path = await self._setup_cgroup(memory, max_proc, user)
 
         try:
             for cmd in cmds:
@@ -142,14 +142,14 @@ class Tester:
 
     async def _execute_one(self, tmpdir: str, timeout: int, memory: int,
                            has_internet: bool, blacklist_dirs: List[str], language: str,
-                           input_file: str, output_file: str, stdin: str, encoding: str) -> ExecResult:
+                           input_file: str, output_file: str, stdin: str, encoding: str, max_proc: int) -> ExecResult:
         # ВНИМАНИЕ ВНИМАНИЕ ВНИМАНИЕ
         # ПЕРЕД ПОПЫТКОЙ ПОСТАВИТЬ СЮДА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ,
         # ПРОЙДИ В КОНЕЦ ЭТОЙ ФУНКЦИИ И ПОСМОТРИ НА ВЫПОЛНЯЮЩУЮСЯ КОМАНДУ
         user = 'ts_user_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
         await self._run_commands([['sudo', 'useradd', '-m', '-g', 'ts_user', user],
                                   ['sudo', 'chown', '-R', user, tmpdir]])
-        cgroup_path = await self._setup_cgroup(memory, 8, user)
+        cgroup_path = await self._setup_cgroup(memory, max_proc, user)
 
         try:
             if input_file:
@@ -223,15 +223,17 @@ class Tester:
                   timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                   input_file: str = '', output_file: str = '',
                   compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
-                  data_encoding: str = 'utf-8', source_encoding: str = 'utf-8') -> ExecResult:
+                  data_encoding: str = 'utf-8', source_encoding: str = 'utf-8',
+                  max_proc: int = 10, compilation_max_proc: int = 10) -> ExecResult:
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
                                                                                  compilation_timeout,
-                                                                                 compilation_memory, source_encoding)
+                                                                                 compilation_memory, source_encoding,
+                                                                                 compilation_max_proc)
             if is_success:
                 res = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs, language,
-                                              input_file, output_file, stdin, data_encoding)
+                                              input_file, output_file, stdin, data_encoding, max_proc)
             else:
                 res = ExecResult(status=ExecStatus.CE, time=None, stdout=None, stderr=None)
             res.compilation_time = compilation_time
@@ -245,17 +247,20 @@ class Tester:
                    timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                    input_file: str = '', output_file: str = '',
                    compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
-                   data_encoding: str = 'utf-8', source_encoding: str = 'utf-8') -> TestResult:
+                   data_encoding: str = 'utf-8', source_encoding: str = 'utf-8',
+                   max_proc: int = 10, compilation_max_proc: int = 10) -> TestResult:
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
                                                                                  compilation_timeout,
-                                                                                 compilation_memory, source_encoding)
+                                                                                 compilation_memory, source_encoding,
+                                                                                 compilation_max_proc)
             if is_success:
                 result = TestResult(results=[], success=True, first_error_test=-1, compilation_error=False)
                 for test_idx, test in enumerate(tests):
                     result_now = await self._execute_one(tmpdir, timeout, memory, has_internet, blacklist_dirs,
-                                                         language, input_file, output_file, test[0], data_encoding)
+                                                         language, input_file, output_file, test[0], data_encoding,
+                                                         max_proc)
                     result.results.append(result_now)
                     if result_now.status == ExecStatus.OK and result_now.stdout != test[1]:
                         result.results[-1].status = ExecStatus.WA
