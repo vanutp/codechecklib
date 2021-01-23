@@ -9,7 +9,7 @@ from time import time
 from typing import List, Tuple
 
 from .const import COMPILE_COMMANDS, AVAILABLE_BINARIES, ExecResult, EXEC_COMMANDS, ExecStatus, \
-    CgroupSetupException, TestResult, MY_USER, TestingException
+    CgroupSetupException, TestResult, MY_USER, TestingException, COMMON_AVAILABLE_BINARIES
 from .sandbox import get_sandbox_command
 
 
@@ -92,7 +92,8 @@ class Tester:
 
         try:
             for cmd in cmds:
-                cmd = get_sandbox_command(False, blacklist_dirs, cmd, AVAILABLE_BINARIES[language],
+                cmd = get_sandbox_command(False, blacklist_dirs, cmd,
+                                          COMMON_AVAILABLE_BINARIES + AVAILABLE_BINARIES[language],
                                           True, cgroup_path, user)
                 process = await create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
@@ -161,7 +162,8 @@ class Tester:
 
             cmd = get_sandbox_command(has_internet, blacklist_dirs,
                                       EXEC_COMMANDS[language](os.path.join(tmpdir, 'code.o')),
-                                      AVAILABLE_BINARIES[language], True, cgroup_path, user)
+                                      COMMON_AVAILABLE_BINARIES + AVAILABLE_BINARIES[language],
+                                      True, cgroup_path, user)
             process = await create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
             async def background_execute(q: Queue, process: Process, stdin: str):

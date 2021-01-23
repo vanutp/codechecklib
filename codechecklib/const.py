@@ -21,13 +21,14 @@ EXEC_COMMANDS = {
     'py_nl': lambda filename: ['python3', filename],
     'rb': lambda filename: ['ruby', filename],
 }
+COMMON_AVAILABLE_BINARIES = ['env', 'bash', 'sh']
 AVAILABLE_BINARIES = {
-    'cs': ['env', 'bash', 'sh', 'mono', 'mcs'],
-    'cpp': ['env', 'bash', 'sh', 'g++', 'ld', 'as'],
-    'c': ['env', 'bash', 'sh', 'gcc', 'ld', 'as'],
-    'py': ['env', 'bash', 'sh', 'python', 'python3', 'pylint', 'cp'],
-    'py_nl': ['env', 'bash', 'sh', 'python', 'python3', 'cp'],
-    'rb': ['env', 'bash', 'sh', 'ruby', 'cp'],
+    'cs': ['mono', 'mcs'],
+    'cpp': ['g++', 'ld', 'as'],
+    'c': ['gcc', 'ld', 'as'],
+    'py': ['python', 'python3', 'pylint', 'cp'],
+    'py_nl': ['python', 'python3', 'cp'],
+    'rb': ['ruby', 'cp'],
 }
 
 MY_USER = getpass.getuser()
@@ -68,5 +69,6 @@ class TestResult(SimpleNamespace):
     first_error_test: int
 
 
-__all__ = ['LANGUAGES', 'COMPILE_COMMANDS', 'EXEC_COMMANDS', 'AVAILABLE_BINARIES', 'MY_USER',
-           'TestingException', 'CgroupSetupException', 'ExecStatus', 'ExecResult', 'TestResult']
+__all__ = ['LANGUAGES', 'COMPILE_COMMANDS', 'EXEC_COMMANDS', 'COMMON_AVAILABLE_BINARIES',
+           'AVAILABLE_BINARIES', 'MY_USER', 'TestingException', 'CgroupSetupException',
+           'ExecStatus', 'ExecResult', 'TestResult']
