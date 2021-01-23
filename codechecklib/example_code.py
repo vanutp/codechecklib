@@ -26,7 +26,8 @@ int main() {
    return 0;
 }''',
     'py': 'print(\'Hello, world!\')',
-    'rb': 'puts \'Hello, world!\''
+    'rb': 'puts \'Hello, world!\'',
+    'js': 'console.log(\'Hello, world!\')'
 }
 EXAMPLE_CODES['py_nl'] = EXAMPLE_CODES['py']
 
