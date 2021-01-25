@@ -7,7 +7,7 @@ LANGUAGES = {'cpp': 'C++', 'cs': 'C#', 'c': 'C', 'py': 'Python', 'rb': 'Ruby', '
 
 COMPILE_COMMANDS = {
     'cs': lambda filename: ['mcs', '-optimize', '-nologo', '-out:' + filename + '.o', filename],
-    'cpp': lambda filename: ['g++', '-x', 'c++', '-o', filename + '.o', filename],
+    'cpp': lambda filename: ['g++', '-x', 'c++', '-std=c++20', '-o', filename + '.o', filename],
     'c': lambda filename: ['gcc', '-x', 'c++', '-o', filename + '.o', filename],
     'py': lambda filename: [['pylint', '--disable=R,C', filename], ['cp', filename, filename + '.o']],
     'py_nl': lambda filename: ['cp', filename, filename + '.o'],
