@@ -157,6 +157,7 @@ class Tester:
                                                     stdin=PIPE, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = map(lambda x: x.decode(encoding, errors='replace'),
                                      await proc.communicate(stdin.encode(encoding)))
+                await self._run_commands([['sudo', 'chown', '-R', f'{user}:ts_user', tmpdir]])
                 if proc.returncode:
                     raise TestingException(f'Failed to write to input_file, {stderr}')
 
