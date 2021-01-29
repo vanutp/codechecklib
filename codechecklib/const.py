@@ -3,7 +3,15 @@ from enum import Enum
 from types import SimpleNamespace
 from typing import List
 
-LANGUAGES = {'cpp': 'C++', 'cs': 'C#', 'c': 'C', 'py': 'Python', 'rb': 'Ruby', 'js': 'JavaScript'}
+LANGUAGES = {
+    'cpp': 'C++',
+    'cs': 'C#',
+    'c': 'C',
+    'py': 'Python',
+    'rb': 'Ruby',
+    'js': 'JavaScript',
+    'rs': 'Rust'
+}
 
 COMPILE_COMMANDS = {
     'cs': lambda filename: ['mcs', '-optimize', '-nologo', '-out:' + filename + '.o', filename],
@@ -13,6 +21,7 @@ COMPILE_COMMANDS = {
     'py_nl': lambda filename: ['cp', filename, filename + '.o'],
     'rb': lambda filename: ['cp', filename, filename + '.o'],
     'js': lambda filename: ['cp', filename, filename + '.o'],
+    'rs': lambda filename: ['rustc', filename, '-o', filename + '.o'],
 }
 EXEC_COMMANDS = {
     'cs': lambda filename: ['mono', filename],
@@ -22,6 +31,7 @@ EXEC_COMMANDS = {
     'py_nl': lambda filename: ['python3', filename],
     'rb': lambda filename: ['ruby', filename],
     'js': lambda filename: ['node', filename],
+    'rs': lambda filename: [filename],
 }
 COMMON_AVAILABLE_BINARIES = ['env', 'bash', 'sh']
 AVAILABLE_BINARIES = {
@@ -32,6 +42,7 @@ AVAILABLE_BINARIES = {
     'py_nl': ['python', 'python3', 'cp'],
     'rb': ['ruby', 'cp'],
     'js': ['node', 'cp'],
+    'rs': ['rustc', 'cc', 'ld'],
 }
 
 MY_USER = getpass.getuser()

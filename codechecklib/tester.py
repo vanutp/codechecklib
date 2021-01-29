@@ -6,7 +6,7 @@ from asyncio import Queue
 from asyncio.subprocess import create_subprocess_exec, PIPE, DEVNULL, Process
 from tempfile import mkdtemp
 from time import time
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from .const import COMPILE_COMMANDS, AVAILABLE_BINARIES, ExecResult, EXEC_COMMANDS, ExecStatus, \
     CgroupSetupException, TestResult, MY_USER, TestingException, COMMON_AVAILABLE_BINARIES
@@ -219,13 +219,28 @@ class Tester:
             await self._remove_cgroup(cgroup_path)
             await self._run_commands([['sudo', 'userdel', user], ['sudo', 'rm', '-rf', f'/home/{user}']])
 
+    @staticmethod
+    def _get_default_procs(lang: str, max_proc: Optional[int], compilation_max_proc: Optional[int]):
+        if max_proc is None:
+            if lang == 'js':
+                max_proc = 16
+            else:
+                max_proc = 8
+        if compilation_max_proc is None:
+            if lang == 'rs':
+                compilation_max_proc = 16
+            else:
+                compilation_max_proc = 8
+        return max_proc, compilation_max_proc
+
     async def run(self, code: str, language: str, stdin: str = '', blacklist_dirs: List[str] = [],
                   # pylint: disable=W0102
                   timeout: int = 2000, memory: int = 1024 * 1024 * 256, has_internet: bool = False,
                   input_file: str = '', output_file: str = '',
                   compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
                   data_encoding: str = 'utf-8', source_encoding: str = 'utf-8',
-                  max_proc: int = 10, compilation_max_proc: int = 10) -> ExecResult:
+                  max_proc: int = None, compilation_max_proc: int = None) -> ExecResult:
+        max_proc, compilation_max_proc = self._get_default_procs(language, max_proc, compilation_max_proc)
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
@@ -249,7 +264,8 @@ class Tester:
                    input_file: str = '', output_file: str = '',
                    compilation_timeout: int = 4000, compilation_memory: int = 1024 * 1024 * 256,
                    data_encoding: str = 'utf-8', source_encoding: str = 'utf-8',
-                   max_proc: int = 10, compilation_max_proc: int = 10) -> TestResult:
+                   max_proc: int = None, compilation_max_proc: int = None) -> TestResult:
+        max_proc, compilation_max_proc = self._get_default_procs(language, max_proc, compilation_max_proc)
         tmpdir = await self._get_temp_dir()
         try:
             is_success, compilation_time, compiler_message = await self._compile(code, blacklist_dirs, language, tmpdir,
