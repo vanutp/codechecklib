@@ -29,8 +29,9 @@ int main() {
     'rb': 'puts \'Hello, world!\'',
     'js': 'console.log(\'Hello, world!\')',
     'rs': '''fn main() {
-    println!("Hello world!");
-}'''
+    println!("Hello, world!");
+}''',
+    'hs': '''main = putStrLn "Hello, world!"''',
 }
 EXAMPLE_CODES['py_nl'] = EXAMPLE_CODES['py']
 

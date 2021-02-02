@@ -10,18 +10,20 @@ LANGUAGES = {
     'py': 'Python',
     'rb': 'Ruby',
     'js': 'JavaScript',
-    'rs': 'Rust'
+    'rs': 'Rust',
+    'hs': 'Haskell',
 }
 
 COMPILE_COMMANDS = {
-    'cs': lambda filename: ['mcs', '-optimize', '-nologo', '-out:' + filename + '.o', filename],
-    'cpp': lambda filename: ['g++', '-x', 'c++', '-std=c++20', '-o', filename + '.o', filename],
-    'c': lambda filename: ['gcc', '-x', 'c++', '-o', filename + '.o', filename],
-    'py': lambda filename: [['pylint', '--disable=R,C', filename], ['cp', filename, filename + '.o']],
-    'py_nl': lambda filename: ['cp', filename, filename + '.o'],
-    'rb': lambda filename: ['cp', filename, filename + '.o'],
-    'js': lambda filename: ['cp', filename, filename + '.o'],
-    'rs': lambda filename: ['rustc', filename, '-o', filename + '.o'],
+    'cs': lambda filename: ['mcs', '-optimize', '-nologo', '-out:' + filename + '.out', filename],
+    'cpp': lambda filename: ['g++', '-x', 'c++', '-std=c++20', '-o', filename + '.out', filename],
+    'c': lambda filename: ['gcc', '-x', 'c++', '-o', filename + '.out', filename],
+    'py': lambda filename: [['pylint', '--disable=R,C', filename], ['cp', filename, filename + '.out']],
+    'py_nl': lambda filename: ['cp', filename, filename + '.out'],
+    'rb': lambda filename: ['cp', filename, filename + '.out'],
+    'js': lambda filename: ['cp', filename, filename + '.out'],
+    'rs': lambda filename: ['rustc', filename, '-o', filename + '.out'],
+    'hs': lambda filename: ['ghc', '-x', 'hs', filename, '-o', filename + '.out'],
 }
 EXEC_COMMANDS = {
     'cs': lambda filename: ['mono', filename],
@@ -32,6 +34,7 @@ EXEC_COMMANDS = {
     'rb': lambda filename: ['ruby', filename],
     'js': lambda filename: ['node', filename],
     'rs': lambda filename: [filename],
+    'hs': lambda filename: [filename],
 }
 COMMON_AVAILABLE_BINARIES = ['env', 'bash', 'sh']
 AVAILABLE_BINARIES = {
@@ -43,6 +46,7 @@ AVAILABLE_BINARIES = {
     'rb': ['ruby', 'cp'],
     'js': ['node', 'cp'],
     'rs': ['rustc', 'cc', 'ld'],
+    'hs': ['ghc', 'cc', 'as', 'ld', 'ld.gold']
 }
 
 MY_USER = getpass.getuser()

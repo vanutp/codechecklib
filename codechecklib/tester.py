@@ -162,7 +162,7 @@ class Tester:
                     raise TestingException(f'Failed to write to input_file, {stderr}')
 
             cmd = get_sandbox_command(has_internet, blacklist_dirs,
-                                      EXEC_COMMANDS[language](os.path.join(tmpdir, 'code.o')),
+                                      EXEC_COMMANDS[language](os.path.join(tmpdir, 'code.out')),
                                       COMMON_AVAILABLE_BINARIES + AVAILABLE_BINARIES[language],
                                       True, cgroup_path, user)
             process = await create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
