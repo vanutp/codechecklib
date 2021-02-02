@@ -12,7 +12,7 @@ class TestJs(unittest.IsolatedAsyncioTestCase):
         test_program = '''fn main() {
     println!("Hello world!");
 }'''
-        res = await self.tester.run(test_program, 'rs', compilation_max_proc=16)
+        res = await self.tester.run(test_program, 'rs')
         print(res.compiler_message)
         self.assertEqual(res.status, ExecStatus.OK)
         self.assertEqual(res.stdout, 'Hello world!')
