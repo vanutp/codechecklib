@@ -2,6 +2,7 @@ import asyncio
 import os
 import random
 import string
+import warnings
 from asyncio import Queue
 from asyncio.subprocess import create_subprocess_exec, PIPE, DEVNULL, Process
 from tempfile import mkdtemp
@@ -25,10 +26,18 @@ class Tester:
                 raise exception(f'Command "{cmd}" failed with exit code {process.returncode}')
 
     async def _setup_cgroup(self, memory, pids, user):
+        cgroup_base_dir = '/sys/fs/cgroup'
         if not os.path.isfile('/sys/fs/cgroup/cgroup.subtree_control'):
-            raise CgroupSetupException('cgroups v2 required')
+            if os.path.isfile('/sys/fs/cgroup/unified/cgroup.subtree_control'):
+                cgroup_base_dir = '/sys/fs/cgroup/unified'
+                warnings.warn('Using unsupported cgroups configuration')
+            else:
+                raise CgroupSetupException('cgroups v2 required')
         cgroup_name = user
-        cgroup_base_dir = '/sys/fs/cgroup/ts'
+        await self._run_commands(
+            [['sudo', 'bash', '-c', f'echo +memory +pids > {cgroup_base_dir}/cgroup.subtree_control']],
+            CgroupSetupException)
+        cgroup_base_dir += '/ts'
         if not os.path.isdir(cgroup_base_dir):
             commands = [
                 f'mkdir {cgroup_base_dir}',
