@@ -17,7 +17,7 @@ LANGUAGES = {
 COMPILE_COMMANDS = {
     'cs': lambda filename: ['mcs', '-optimize', '-nologo', '-out:' + filename + '.out', filename],
     'cpp': lambda filename: ['g++', '-x', 'c++', '-std=c++20', '-o', filename + '.out', filename],
-    'c': lambda filename: ['gcc', '-x', 'c++', '-o', filename + '.out', filename],
+    'c': lambda filename: ['gcc', '-x', 'c', '-o', filename + '.out', filename],
     'py': lambda filename: [['pylint', '--disable=R,C', filename], ['cp', filename, filename + '.out']],
     'py_nl': lambda filename: ['cp', filename, filename + '.out'],
     'rb': lambda filename: ['cp', filename, filename + '.out'],
