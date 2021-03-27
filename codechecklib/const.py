@@ -33,7 +33,7 @@ EXEC_COMMANDS = {
     'c': lambda filename: [filename],
     'py': lambda filename: ['python3', filename],
     'py_nl': lambda filename: ['python3', filename],
-    'py2': lambda filename: ['python2', filename]
+    'py2': lambda filename: ['python2', filename],
     'rb': lambda filename: ['ruby', filename],
     'js': lambda filename: ['node', filename],
     'rs': lambda filename: [filename],
