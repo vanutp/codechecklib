@@ -46,7 +46,7 @@ AVAILABLE_BINARIES = {
     'c': ['gcc', 'ld', 'as'],
     'py': ['python', 'python3', 'pylint', 'cp'],
     'py_nl': ['python', 'python3', 'cp'],
-    'py2': ['python2', 'cp']
+    'py2': ['python2', 'cp'],
     'rb': ['ruby', 'cp'],
     'js': ['node', 'cp'],
     'rs': ['rustc', 'cc', 'ld'],
