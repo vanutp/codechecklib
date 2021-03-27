@@ -8,6 +8,7 @@ LANGUAGES = {
     'cs': 'C#',
     'c': 'C',
     'py': 'Python',
+    'py2': 'Python 2',
     'rb': 'Ruby',
     'js': 'JavaScript',
     'rs': 'Rust',
@@ -20,6 +21,7 @@ COMPILE_COMMANDS = {
     'c': lambda filename: ['gcc', '-x', 'c', '-o', filename + '.out', filename],
     'py': lambda filename: [['pylint', '--disable=R,C', filename], ['cp', filename, filename + '.out']],
     'py_nl': lambda filename: ['cp', filename, filename + '.out'],
+    'py2': lambda filename: ['cp', filename, filename + '.out'],
     'rb': lambda filename: ['cp', filename, filename + '.out'],
     'js': lambda filename: ['cp', filename, filename + '.out'],
     'rs': lambda filename: ['rustc', filename, '-o', filename + '.out'],
@@ -31,6 +33,7 @@ EXEC_COMMANDS = {
     'c': lambda filename: [filename],
     'py': lambda filename: ['python3', filename],
     'py_nl': lambda filename: ['python3', filename],
+    'py2': lambda filename: ['python2', filename]
     'rb': lambda filename: ['ruby', filename],
     'js': lambda filename: ['node', filename],
     'rs': lambda filename: [filename],
@@ -43,6 +46,7 @@ AVAILABLE_BINARIES = {
     'c': ['gcc', 'ld', 'as'],
     'py': ['python', 'python3', 'pylint', 'cp'],
     'py_nl': ['python', 'python3', 'cp'],
+    'py2': ['python2', 'cp']
     'rb': ['ruby', 'cp'],
     'js': ['node', 'cp'],
     'rs': ['rustc', 'cc', 'ld'],
