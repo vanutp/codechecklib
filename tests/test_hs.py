@@ -4,7 +4,7 @@ from codechecklib import Tester
 from codechecklib.const import ExecStatus
 
 
-class TestJs(unittest.IsolatedAsyncioTestCase):
+class TestHs(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.tester = Tester()
 
