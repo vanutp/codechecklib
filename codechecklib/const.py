@@ -8,6 +8,7 @@ LANGUAGES = {
     'cs': 'C#',
     'c': 'C',
     'py': 'Python',
+    'py_nl': 'Python (no lint)',
     'py2': 'Python 2',
     'rb': 'Ruby',
     'js': 'JavaScript',
