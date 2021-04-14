@@ -32,6 +32,7 @@ int main() {
     println!("Hello, world!");
 }''',
     'hs': '''main = putStrLn "Hello, world!"''',
+    'py2': 'print \'Hello, world!\''
 }
 EXAMPLE_CODES['py_nl'] = EXAMPLE_CODES['py']
 
