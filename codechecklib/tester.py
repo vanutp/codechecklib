@@ -82,10 +82,10 @@ class Tester:
     async def _compile(self, code, blacklist_dirs: List[str], language: str, tmpdir: str, timeout: int, memory: int,
                        encoding: str, max_proc: int):
         filename = os.path.join(tmpdir, 'code')
-        
+
         with open(filename, 'wb') as file:
             file.write(code.encode(encoding))
-        
+
         cmds = COMPILE_COMMANDS[language](filename)
         compilation_time = 0
         compiler_message = ''
