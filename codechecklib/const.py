@@ -26,7 +26,7 @@ COMPILE_COMMANDS = {
     'rb': lambda filename: ['cp', filename, filename + '.out'],
     'js': lambda filename: ['cp', filename, filename + '.out'],
     'rs': lambda filename: ['rustc', filename, '-o', filename + '.out'],
-    'hs': lambda filename: ['ghc', '-x', 'hs', filename, '-o', filename + '.out'],
+    'hs': lambda filename: ['ghc', '-dynamic', '-x', 'hs', filename, '-o', filename + '.out'],
 }
 EXEC_COMMANDS = {
     'cs': lambda filename: ['mono', filename],
