@@ -237,7 +237,7 @@ class Tester:
             else:
                 max_proc = 8
         if compilation_max_proc is None:
-            if lang == 'rs':
+            if lang in ('rs', 'hs'):
                 compilation_max_proc = 16
             else:
                 compilation_max_proc = 8
